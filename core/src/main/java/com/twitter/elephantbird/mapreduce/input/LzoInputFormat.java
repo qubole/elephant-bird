@@ -50,50 +50,6 @@ public abstract class LzoInputFormat<K, V> extends FileInputFormat<K, V> {
     }};
 
   @Override
-  protected List<FileStatus> listStatus(JobContext job) throws IOException {
-    // The list of files is no different.
-    List<FileStatus> files = super.listStatus(job);
-    List<FileStatus> results = Lists.newArrayList();
-    boolean recursive = HadoopCompat.getConfiguration(job).getBoolean("mapred.input.dir.recursive", false);
-    Iterator<FileStatus> it = files.iterator();
-    while (it.hasNext()) {
-      FileStatus fileStatus = it.next();
-      FileSystem fs = fileStatus.getPath().getFileSystem(HadoopCompat.getConfiguration(job));
-      addInputPath(results, fs, fileStatus, recursive);
-    }
-
-    LOG.debug("Total lzo input paths to process : " + results.size());
-    return results;
-  }
-
-  //MAPREDUCE-1501
-  /**
-   * Add lzo file(s). If recursive is set, traverses the directories.
-   * @param result
-   *          The List to store all files.
-   * @param fs
-   *          The FileSystem.
-   * @param pathStat
-   *          The input path.
-   * @param recursive
-   *          Traverse in to directory
-   * @throws IOException
-   */
-  protected void addInputPath(List<FileStatus> results, FileSystem fs,
-                 FileStatus pathStat, boolean recursive) throws IOException {
-    Path path = pathStat.getPath();
-    if (pathStat.isDir()) {
-      if (recursive) {
-        for(FileStatus stat: fs.listStatus(path, hiddenPathFilter)) {
-          addInputPath(results, fs, stat, recursive);
-        }
-      }
-    } else if ( visibleLzoFilter.accept(path) ) {
-      results.add(pathStat);
-    }
-  }
-
-  @Override
   protected boolean isSplitable(JobContext context, Path filename) {
     /* This should ideally return 'false'
      * and splitting should be handled completely in
